@@ -28,7 +28,6 @@ typedef pcl::PointCloud<pcl::PointXYZRGB> PointCloudC;
 ros::Publisher plane_pub;
 ros::Publisher objects_pub;
 ros::Publisher coeff_pub;
-ros::Publisher debug_pub;
 
 pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
 pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
@@ -143,13 +142,6 @@ void cloud_cb (const sensor_msgs::PointCloud2& input_msg)
     plane_pub.publish(output_plane_msg);
     objects_pub.publish(output_objects_msg);
 
-    std_msgs::String msg;
-
-    std::stringstream ss;
-    ss << "debug";
-    msg.data = ss.str();
-    debug_pub.publish(msg);
-
     ROS_DEBUG("PC segmented and rerouted. Inliers: %d", inliers->indices.size());
 
   }
@@ -165,7 +157,7 @@ void cloud_cb (const sensor_msgs::PointCloud2& input_msg)
 int main (int argc, char** argv) 
 {
   // Initialize ROS
-  ros::init (argc, argv, "plane_segmenter");
+  ros::init (argc, argv, "tabletop_segment");
   ros::NodeHandle nh;
 
   // Create a ROS subscriber for the input point cloud
@@ -174,7 +166,6 @@ int main (int argc, char** argv)
   // Create a ROS publisher for the output point cloud
   plane_pub =   nh.advertise<sensor_msgs::PointCloud2>("plane_cloud", 1, true);
   objects_pub = nh.advertise<sensor_msgs::PointCloud2>("objects_cloud", 1, true);
-  debug_pub =   nh.advertise<std_msgs::String>("output_debug", 1000);
   coeff_pub =   nh.advertise<pcl_msgs::ModelCoefficients>("output_coefficients", 1, true);
 
   // Initialize the segmentation object
