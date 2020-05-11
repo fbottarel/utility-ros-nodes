@@ -102,6 +102,9 @@ void cloud_cb (const sensor_msgs::PointCloud2& input_msg)
 
   // Segmentation
   seg.setInputCloud(cropped_cloud);
+  double dist_thresh;
+  ros::param::param("plane_distance_threshold", dist_thresh, seg.getDistanceThreshold());
+  seg.setDistanceThreshold(dist_thresh);
   seg.segment(*inliers, *coefficients);
 
   if (inliers->indices.size() > 0)
@@ -173,6 +176,15 @@ int main (int argc, char** argv)
   seg.setModelType(pcl::SACMODEL_PLANE);
   seg.setMethodType(pcl::SAC_RANSAC);
   seg.setDistanceThreshold(0.01);
+
+  // Initialize the node parameters
+  nh.setParam("crop_min_x", -0.5);
+  nh.setParam("crop_min_y", -0.5);
+  nh.setParam("crop_min_z", 0.2);
+  nh.setParam("crop_max_x", 0.5);
+  nh.setParam("crop_max_y", 0.5);
+  nh.setParam("crop_max_z", 0.9);
+  nh.setParam("plane_distance_threshold", seg.getDistanceThreshold());
 
   // Info 
   ROS_INFO("Node initialized, spinning up");
