@@ -1,6 +1,3 @@
 [submodule "src/point_cloud_io"]
 	path = src/point_cloud_io
 	url = https://github.com/fbottarel/point_cloud_io
-[submodule "src/point_cloud_segmentation"]
-	path = src/point_cloud_segmentation
-	url = https://github.com/fbottarel/point_cloud_segmentation
