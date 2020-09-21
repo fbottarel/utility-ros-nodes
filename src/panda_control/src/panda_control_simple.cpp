@@ -51,8 +51,7 @@ bool CartesianController::moveEECallback(panda_control::GoToCartPose::Request &r
 
     Eigen::Affine3d pose_f = Eigen::Affine3d::Identity();
     pose_f.translation() = pos_f;
-    pose_f.linear() = quat_f.toRotationMatrix();
-    
+    pose_f.linear() = quat_f.toRotationMatrix();  
 
     // franka::CartesianPose is expressed as a 4x4 matrix (from ee frame to base frame), column major
     std::array<double, 16> pose_i;
@@ -64,36 +63,42 @@ bool CartesianController::moveEECallback(panda_control::GoToCartPose::Request &r
     //  Activate controller with a lambda function. For now, this just changes the orientation
     robot_ptr->control([&time, &pose_i, &pos_f, &total_duration](const franka::RobotState& robot_state,
                                          franka::Duration period) -> franka::CartesianPose {
-        time += period.toSec();
 
         if (time == 0.0) {
             pose_i = robot_state.O_T_EE_c;
         }
 
+        std::cout << time << std::endl;
+
+        time += period.toSec();
+
         // Trajectory is a sin in 3 coordinates
+        // The angle is smoothed over a cosine arc
         // This is not ensured to respect acceleration and velocity requirements!
-        //double angle = M_PI / 4 * std::sin(M_PI * time / total_duration);
-        double angle = M_PI/4 * time / total_duration;
+        double angle = M_PI / 4 * (1 - std::cos(M_PI * time / total_duration));
         double new_x = pose_i[12] + std::sin(angle) * (pos_f(0) - pose_i[12]);
         double new_y = pose_i[13] + std::sin(angle) * (pos_f(1) - pose_i[13]);
         double new_z = pose_i[14] + std::sin(angle) * (pos_f(2) - pose_i[14]);
 
         std::array<double, 16> new_pose = pose_i;
-        // new_pose[12] = new_x;
-        // new_pose[13] = new_y;
-        // new_pose[14] = new_z;
+        new_pose[12] = new_x;
+        new_pose[13] = new_y;
+        new_pose[14] = new_z;
 
       if (time >= total_duration) {
         ROS_INFO_STREAM("Motion is complete");
         return franka::MotionFinished(new_pose);
       }
+
+    //   std::copy(std::begin(pose_i), std::end(pose_i), std::ostream_iterator<int>(std::cout, " "));
+
       return new_pose;
     });
 
     // Assume movement was successful
-    resp.success = True;
+    resp.success = true;
 
-    return;
+    return true;
 
 }
 
@@ -102,7 +107,7 @@ int main(int argc, char *argv[])
 {
 
     // Temporary, we might want to fetch this from a config file or rosparam server
-    const std::string ROBOT_IP = "178.16.0.2";
+    const std::string ROBOT_IP = "172.16.0.2";
 
     // Initialize ROS and declare node
     ros::init(argc, argv, "panda_control_simple");
