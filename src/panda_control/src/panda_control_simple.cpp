@@ -4,6 +4,7 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
+#include <signal.h>
 
 #include <ros/ros.h>
 
@@ -157,6 +158,7 @@ int main(int argc, char *argv[])
                                                         &CartesianController::moveEECallback, 
                                                         &controller);
 
+        signal(SIGINT, sigIntHandler);
         ros::spin();
 
     }
