@@ -102,35 +102,55 @@ bool CartesianController::moveEECallback(panda_control::GoToCartPose::Request &r
         return franka::MotionFinished(new_pose);
       }
 
-    //   std::copy(std::begin(pose_i), std::end(pose_i), std::ostream_iterator<int>(std::cout, " "));
-
       return new_pose;
     });
 
     // Assume movement was successful
+    // TODO: how can we ascertain this?
     resp.success = true;
 
     return true;
 
 }
 
+// bool uselessCallback(panda_control::GoToCartPose::Request &req,
+//                         panda_control::GoToCartPose::Response &resp)
+// {
+//     resp.success=true;
+//     return true;   
+// }
+
+void sigIntHandler(int sig)
+{
+    ROS_INFO_STREAM("Time to die.");
+    ros::shutdown();
+}
 
 int main(int argc, char *argv[])
 {
 
     // Temporary, we might want to fetch this from a config file or rosparam server
-    const std::string ROBOT_IP = "172.16.0.2";
+    // const std::string ROBOT_IP = "172.16.0.2";
+    std::string robot_ip;
 
     // Initialize ROS and declare node
-    ros::init(argc, argv, "panda_control_simple");
-    ros::NodeHandle nh;
+    ros::init(argc, argv, "panda_cartesian_controller");
+    ros::NodeHandle nh("~");
 
+    // Parse parameters
+    nh.param<std::string>("robot_ip", robot_ip, "172.16.0.2");
+
+    ROS_INFO_STREAM("Robot ip: " << robot_ip);
     ROS_INFO_STREAM("Panda control node successfully created!");
+
+    // fake server
+    // ros::ServiceServer server = nh.advertiseService("cartesian_target_pose", 
+    //                                             &uselessCallback);
 
     try {
 
         // Open network connection with the robot
-        franka::Robot robot(ROBOT_IP);
+        franka::Robot robot(robot_ip);
 
         ROS_INFO_STREAM("Network connection with the robot established.");
 
@@ -167,8 +187,6 @@ int main(int argc, char *argv[])
         ROS_INFO_STREAM(e.what());
         return -1;
     }
-
-    ROS_INFO_STREAM("Time to die.");
 
     return 0;
 }
