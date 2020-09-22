@@ -44,10 +44,23 @@ CartesianController::CartesianController(franka::Robot& robot)
 bool CartesianController::moveEECallback(panda_control::GoToCartPose::Request &req,
                         panda_control::GoToCartPose::Response &resp)
 {
+
     Eigen::Vector3d pos_f(req.target_pose.position.x, req.target_pose.position.y, req.target_pose.position.z);
     //  Quaternion in req is expressed in xyzw form
     Eigen::Quaternion<double> quat_f(req.target_pose.orientation.w, req.target_pose.orientation.x, req.target_pose.orientation.y, req.target_pose.orientation.z);
     quat_f.normalize();
+
+    ROS_INFO_STREAM("EEF motion requested");
+    ROS_INFO_STREAM("Target position: xyz " << pos_f(0) << " "
+                                            << pos_f(1) << " "
+                                            << pos_f(2)
+                                            );
+    ROS_INFO_STREAM("Target orientation: xyzw " << quat_f.x() << " "
+                                                << quat_f.y() << " "
+                                                << quat_f.z() << " "
+                                                << quat_f.w()
+                                                );
+    ROS_WARN_STREAM("Starting movement towards target pose");
 
     Eigen::Affine3d pose_f = Eigen::Affine3d::Identity();
     pose_f.translation() = pos_f;
@@ -56,9 +69,9 @@ bool CartesianController::moveEECallback(panda_control::GoToCartPose::Request &r
     // franka::CartesianPose is expressed as a 4x4 matrix (from ee frame to base frame), column major
     std::array<double, 16> pose_i;
 
-    // Assume standard duration
+    // Get duration from request
     double time = 0.0;
-    double total_duration = 5.0;
+    double total_duration = std::abs(req.duration);
 
     //  Activate controller with a lambda function. For now, this just changes the orientation
     robot_ptr->control([&time, &pose_i, &pos_f, &total_duration](const franka::RobotState& robot_state,
@@ -67,8 +80,6 @@ bool CartesianController::moveEECallback(panda_control::GoToCartPose::Request &r
         if (time == 0.0) {
             pose_i = robot_state.O_T_EE_c;
         }
-
-        std::cout << time << std::endl;
 
         time += period.toSec();
 
@@ -134,7 +145,7 @@ int main(int argc, char *argv[])
         std::array<double, 7> q_goal = {{0, -M_PI_4, 0, -3 * M_PI_4, 0, M_PI_2, M_PI_4}};
         MotionGenerator motion_generator(0.5, q_goal);
 
-        ROS_WARN_STREAM("Warning: robot is being homed.");
+        ROS_WARN_STREAM("Robot is being homed.");
 
         robot.control(motion_generator);
 
